@@ -1,0 +1,113 @@
+{
+  "name": "NFCD",
+  "percent": 5,
+  "note_name": "stage3_nf",
+  "experim_name": "method_percent",
+  "n_gpu": 1,
+  "diff_lrs": true,
+  "ramp_up": 0.1,
+  "lr_scheduler": "Poly",
+  "pretrained": true,
+  "model": {
+    "name": "encoder-decoder",
+    "method": "supervised",
+    "backbone": "NF",
+    "nf_weight": 1,
+    "confidence_thr": 0.95,
+    "nf_thirdStageTrain": 0.3
+  },
+  "optimizer": {
+    "type": "SGD",
+    "args": {
+      "lr": 1e-2,
+      "weight_decay": 1e-4,
+      "momentum": 0.9
+    }
+  },
+  "train_supervised": {
+    "data_dir": "/mnt/sdb/26_zdj/DATA/WHU",
+    "batch_size": 4,
+    "crop_size": 256,
+    "shuffle": true,
+    "base_size": 256,
+    "scale": true,
+    "augment": "weak",
+    "flip": true,
+    "rotate": true,
+    "split": "train_supervised",
+    "num_workers": 0
+  },
+  "train_unsupervised": {
+    "data_dir": "/mnt/sdb/26_zdj/DATA/WHU",
+    "batch_size": 4,
+    "crop_size": 256,
+    "shuffle": true,
+    "base_size": 256,
+    "scale": true,
+    "augment": "strong",
+    "flip": true,
+    "rotate": true,
+    "split": "train_unsupervised",
+    "num_workers": 0
+  },
+  "nf_train_supervised": {
+    "data_dir": "/mnt/sdb/26_zdj/DATA/WHU",
+    "batch_size": 4,
+    "crop_size": 256,
+    "shuffle": true,
+    "base_size": 256,
+    "scale": true,
+    "augment": "weak",
+    "flip": true,
+    "rotate": true,
+    "split": "train_supervised",
+    "num_workers": 0,
+    "aug_type": "all",
+    "percnt_lbl": 5
+  },
+  "val_loader": {
+    "data_dir": "/mnt/sdb/26_zdj/DATA/WHU",
+    "batch_size": 1,
+    "val": true,
+    "split": "val",
+    "shuffle": false,
+    "num_workers": 0
+  },
+  "trainer": {
+    "epochs": 170,
+    "sub_epochs": [
+      80,
+      10,
+      80
+    ],
+    "process": [1, 2, 3, 4],
+    "save_dir": "/mnt/sdb/26_zdj/OUT/nfcd/outputs/WHU",
+    "save_period": 5,
+    "save_period_nf": 5,
+    "val_per_epochs": 5,
+    "val_per_epochs_nf": 5,
+    "monitor": "max Mean_IoU",
+    "early_stop": 10,
+    "tensorboardX": true,
+    "log_dir": "./outputs/nfcd",
+    "log_per_iter": 20,
+    "val": true
+  },
+  "nf_trainer": {
+    "condition_vec": 32,
+    "pool_dims": [32],
+    "conv_layers": ["cov1", "conv2", "conv3"],
+    "sub_epochs": 1,
+    "dec_arch": "freia-flow",
+    "coupling_blocks": 4,
+    "clamp_alpha": 1.9,
+    "lr": 0.0002,
+    "lr_decay_rate": 0.1,
+    "lr_warm_epochs": 0,
+    "lr_warm": false,
+    "lr_cosine": true,
+    "pool_layers": 1,
+    "N": 256,
+    "meta_epochs": 10
+  }
+}
