@@ -172,22 +172,16 @@ def main():
     dataset = args.Dataset_Path.split('/')[-1]
     percent = config['percent']
     backbone = config['model']['backbone']
-    # if backbone == 'ResNet50':
-    #     model = models.CCFF(num_classes=num_classes, conf=config['model'], testing=True)
-    # elif backbone == 'HRNet':
-    #     model = models.FPA_HRNet_CD(num_classes=num_classes, conf=config['model'], testing=True)
-    # elif backbone == 'ResNet101':
-    #     model = models.FPA_ResNet101_CD(num_classes=num_classes, conf=config['model'], testing=True)
-    # model = models.NF_ResNet50_CD(num_classes=num_classes, config=config, testing=True)
-    # if method == 'NF':
-    #     model = models.NF_ResNet50_CD(num_classes=num_classes, config=config, testing=True)
-    # elif method == 'RCR':
-    #     model = RcRmodel.Consistency_ResNet50_CD(num_classes=num_classes, conf=config['model'], testing=True)
-    # elif method == 's4GAN':
-    #     model = s4GANmodel.s4GAN(num_classes=num_classes, conf=config['model'], testing=True)
-    # elif method == 'AdvNet':
-    #     model = AdvNetmodel.AdvNet(num_classes=num_classes, conf=config['model'], testing=True)
-    model = models.NF_ResNet50_CD(num_classes=num_classes, config=config, testing=True)
+    if backbone == 'ResNet50':
+        model = models.NF_ResNet50_CD(num_classes=num_classes, config=config, testing=True)
+    elif backbone == 'ResNet101':
+        model = models.NF_ResNet101_CD(num_classes=num_classes, config=config, testing=True)
+    elif backbone == 'HRNet':
+        model = models.NF_HRNet_CD(num_classes=num_classes, config=config, testing=True)
+    elif backbone == 'NF':  # backward compatibility with older configs
+        model = models.NF_ResNet50_CD(num_classes=num_classes, config=config, testing=True)
+    else:
+        raise ValueError(f"Unsupported backbone: {backbone}")
     print(f'\n{model}\n')
     checkpoint = torch.load(args.model)
     model = torch.nn.DataParallel(model)

@@ -1,7 +1,7 @@
 {
   "name": "NFCD",
   "percent": 40,
-  "note_name": "stage3_nf",
+  "note_name": "{weight_tag}",
   "experim_name": "method_percent",
   "n_total_lbl": 7120,
   "n_gpu": 1,
@@ -11,7 +11,7 @@
   "model": {
     "name": "encoder-decoder",
     "method": "supervised",
-    "backbone": "NF",
+    "backbone": "ResNet50",
     "nf_weight": 1,
     "confidence_thr": 0.95,
     "nf_thirdStageTrain" : 0.3
@@ -81,7 +81,7 @@
       80
     ],
     "process": [2],
-    "save_dir": "/sd1/kzq/nfcd/outputs/LEVIR",
+    "save_dir": "/sd1/kzq/nfcd/outputs/{dataset}/{backbone}",
     "save_period": 5,
     "save_period_nf": 5,
     "val_per_epochs": 5,

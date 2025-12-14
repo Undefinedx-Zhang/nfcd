@@ -29,11 +29,24 @@ def main(config, resume, gpu, aug_type='all'):
     backbone = config['model']['backbone'] 
     config['experim_name'] = config['experim_name'].replace('method', method)
     config['experim_name'] = config['experim_name'].replace('percent', str(config['percent'] ))
-    config['trainer']['save_dir'] = config['trainer']['save_dir'].replace('backbone', backbone)
+    nf_weight = config['model'].get('nf_weight', '')
+    weight_tag = f"weight{str(nf_weight).replace('.', '')}" if nf_weight != '' else "weight"
+    config['note_name'] = config['note_name'].format(
+        nf_weight=str(nf_weight),
+        weight_tag=weight_tag,
+    )
+    config['trainer']['save_dir'] = config['trainer']['save_dir'].format(
+        dataset=dataset,
+        backbone=backbone,
+        experim=config['experim_name'],
+    )
 
-    config["trainer"]["best_stage_one_model"] = f"/mnt/sdb/26_zdj/OUT/nfcd/outputs/{dataset}/{config['experim_name']}/stage1/best_model_thr-0.95.pth"
-    config["trainer"]["best_stage_two_model"] = f"/mnt/sdb/26_zdj/OUT/nfcd/outputs/{dataset}/{config['experim_name']}/stage2_nf/nf/best_model_nf_decoders.pth"
-    config["fake_labels_dir"] = f"/mnt/sdb/26_zdj/OUT/nfcd/outputs/{dataset}/{config['experim_name']}/stage3_nf/fake_labels"
+    base_output_dir = os.path.join(config['trainer']['save_dir'], config['experim_name'])
+    config["trainer"]["best_stage_one_model"] = f"{base_output_dir}/stage1/best_model_thr-0.95.pth"
+    config["trainer"]["best_stage_two_model"] = f"{base_output_dir}/stage2/nf/best_model_nf_decoders.pth"
+    # Pseudo labels are shared across weight settings; keep them directly under fake_labels
+    config["fake_labels_dir"] = f"{base_output_dir}/fake_labels"
+    
     print(config)
 
     # DATA LOADERS
@@ -56,29 +69,35 @@ def main(config, resume, gpu, aug_type='all'):
 
     # MODEL
     if backbone == 'ResNet50':
-        model = models.FPA_ResNet50_CD(num_classes=val_loader.dataset.num_classes, 
-                                        config=config,
-                                        loss_l=loss_l,
-                                        loss_alg=loss_alg,
-                                        len_unsper=len(unsupervised_loader))
-    elif backbone == 'NF':
-        model = models.NF_ResNet50_CD(num_classes=val_loader.dataset.num_classes,
-                                        config=config,
-                                        loss_l=loss_l,
-                                        loss_alg=loss_alg,
-                                        len_unsper=len(unsupervised_loader))
-    elif backbone == 'HRNet':
-        model = models.FPA_HRNet_CD(num_classes=val_loader.dataset.num_classes, 
-                                     conf=config['model'],
-                                     loss_l=loss_l,
-                                     loss_alg=loss_alg,
-                                     len_unsper=len(unsupervised_loader))
+        model = models.NF_ResNet50_CD(
+            num_classes=val_loader.dataset.num_classes,
+            config=config,
+            loss_l=loss_l,
+            loss_alg=loss_alg,
+            len_unsper=len(unsupervised_loader))
     elif backbone == 'ResNet101':
-        model = models.FPA_ResNet101_CD(num_classes=val_loader.dataset.num_classes, 
-                                         conf=config['model'],
-                                         loss_l=loss_l,
-                                         loss_alg=loss_alg,
-                                         len_unsper=len(unsupervised_loader))
+        model = models.NF_ResNet101_CD(
+            num_classes=val_loader.dataset.num_classes,
+            config=config,
+            loss_l=loss_l,
+            loss_alg=loss_alg,
+            len_unsper=len(unsupervised_loader))
+    elif backbone == 'HRNet':
+        model = models.NF_HRNet_CD(
+            num_classes=val_loader.dataset.num_classes,
+            config=config,
+            loss_l=loss_l,
+            loss_alg=loss_alg,
+            len_unsper=len(unsupervised_loader))
+    elif backbone == 'NF':  # backward compatibility with old configs
+        model = models.NF_ResNet50_CD(
+            num_classes=val_loader.dataset.num_classes,
+            config=config,
+            loss_l=loss_l,
+            loss_alg=loss_alg,
+            len_unsper=len(unsupervised_loader))
+    else:
+        raise ValueError(f"Unsupported backbone: {backbone}")
 
     print(f'\n{model}\n')
 

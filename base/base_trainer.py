@@ -1,4 +1,5 @@
 import glob
+import time
 import torch
 from torch.utils import tensorboard
 from tqdm import tqdm
@@ -84,6 +85,8 @@ class BaseTrainer:
         # nf decoder
         self.nf_decoders = None
         
+    def _format_duration(self, seconds):
+        return str(datetime.timedelta(seconds=int(seconds)))
 
     def _get_available_devices(self, n_gpu):
         sys_gpu = torch.cuda.device_count()
@@ -103,6 +106,7 @@ class BaseTrainer:
     def train(self):
         # first stage train
         if 1 in self.process:
+            stage_start = time.time()
             config_1_dir = os.path.join(self.checkpoint_dir, 'stage1')
             os.makedirs(config_1_dir, exist_ok=True)
             with open(os.path.join(config_1_dir, 'config.json'), 'w') as handle:
@@ -124,8 +128,10 @@ class BaseTrainer:
                 if epoch % self.save_period == 0:
                     stage_one_best_checkpoint = self._save_checkpoint(epoch, save_best=self.improved, stage="stage1")
             print("="*50, "End stage ONE", "="*50)
+            print(f"Process 1 (stage ONE) duration: {self._format_duration(time.time() - stage_start)}")
         # second stage train
         if 2 in self.process:
+            stage_start = time.time()
             # Training
             print("="*50, "Start stage TWO", "="*50)
             self.start_epoch = 1
@@ -155,11 +161,12 @@ class BaseTrainer:
             #
             # print("=" * 50, "End stage TWO", "=" * 50)
             # self._components_tongji(self.nf_decoders)
+            print(f"Process 2 (stage TWO) duration: {self._format_duration(time.time() - stage_start)}")
         # generate pseudo labels
         if 3 in self.process:
-            self.checkpoint_dir=os.path.join(self.checkpoint_dir, self.note_name)
-            os.makedirs(self.checkpoint_dir, exist_ok=True)
-
+            stage_start = time.time()
+            fake_label_dir = Path(self.config["fake_labels_dir"])
+            fake_label_dir.mkdir(parents=True, exist_ok=True)
             checkpoint = torch.load(self.config['trainer']['best_stage_one_model'], map_location='cuda')
             print(f"checkpoint loaded: {self.config['trainer']['best_stage_one_model']}")
             self.model.module.load_state_dict(checkpoint['state_dict'], strict=False)
@@ -173,18 +180,15 @@ class BaseTrainer:
                     param.requires_grad = False
 
             self._generate_pseudo_labels()
+            print(f"Process 3 (pseudo label generation) duration: {self._format_duration(time.time() - stage_start)}")
         # third stage train
         if 4 in self.process:
+            stage_start = time.time()
             print("=" * 50, "Start stage THREE", "=" * 50)
 
             # Set original model parameters to be optimizable
             for param in self.model.parameters():
                 param.requires_grad = True
-            # Save config
-            self.checkpoint_dir=os.path.join(self.checkpoint_dir, self.note_name)
-            os.makedirs(self.checkpoint_dir, exist_ok=True)
-            # with open(os.path.join(self.checkpoint_dir, "config.json"), 'w', encoding='utf-8') as f:
-            #     json.dump(self.config, f, ensure_ascii=False, indent=4)
 
             # Reset optimizer
             self._reset_optimizer()
@@ -203,14 +207,15 @@ class BaseTrainer:
                     self.mnt_best = self.mnt_curr if self.improved else self.mnt_best
 
                 if epoch % self.save_period == 0:
-                    self._save_checkpoint(epoch, save_best=self.improved, stage="stage3")
+                    self._save_checkpoint(epoch, save_best=self.improved, stage=f"stage3/{self.note_name}")
             print("=" * 50, "End stage THREE", "=" * 50)
             # remove peudo labels
-            fake_label_dir = self.config["fake_labels_dir"]
-            for f in glob.glob(os.path.join(fake_label_dir, "Label_batch_*.pt")):
-                os.remove(f)
-            for f in glob.glob(os.path.join(fake_label_dir, "noLabel_batch_*.pt")):
-                os.remove(f)
+            # fake_label_dir = self.config["fake_labels_dir"]
+            # for f in glob.glob(os.path.join(fake_label_dir, "Label_batch_*.pt")):
+            #     os.remove(f)
+            # for f in glob.glob(os.path.join(fake_label_dir, "noLabel_batch_*.pt")):
+            #     os.remove(f)
+            print(f"Process 4 (stage THREE) duration: {self._format_duration(time.time() - stage_start)}")
 
         if 5 in self.process:
             checkpoint = torch.load(self.config['trainer']['best_stage_one_model'], map_location='cuda')
@@ -269,7 +274,7 @@ class BaseTrainer:
             print (f'Error when loading: {e}')
             self.model.module.load_state_dict(checkpoint['state_dict'], strict=False)
             
-    def _nf_save_weights(self, epoch, stage = "stage2_nf", save_best=False):
+    def _nf_save_weights(self, epoch, stage = "stage2", save_best=False):
         weight_dir = Path(self.checkpoint_dir) / stage / 'nf'
         weight_dir.mkdir(exist_ok=True, parents=True)
         state = {'decoder_state_dict': [decoder.state_dict() for decoder in self.nf_decoders]}

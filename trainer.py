@@ -193,8 +193,8 @@ class Trainer(BaseTrainer):
                     train_count += len(loss)
 
         mean_train_loss = train_loss / train_count if train_count > 0 else 0
-        os.makedirs(Path(self.checkpoint_dir) / 'stage2_nf', exist_ok=True)
-        with open(Path(self.checkpoint_dir) / 'stage2_nf' / "stage_2_training_log.txt", "a", encoding="utf-8") as file:
+        os.makedirs(Path(self.checkpoint_dir) / 'stage2', exist_ok=True)
+        with open(Path(self.checkpoint_dir) / 'stage2' / "stage_2_training_log.txt", "a", encoding="utf-8") as file:
             file.write('Stage {} | Epoch: {:d} | train loss: {:.4f}, lr={:.6f}\n'
                        .format(self.curr_stage, epoch, mean_train_loss, lr))
         print('Stage {} | Epoch: {:d} \t train loss: {:.4f}, lr={:.6f}'
@@ -330,7 +330,7 @@ class Trainer(BaseTrainer):
         log_theta = torch.nn.LogSigmoid()
 
         # Create storage directory
-        fake_label_dir = os.path.join(self.checkpoint_dir, "fake_labels")
+        fake_label_dir = self.conf["fake_labels_dir"]
         os.makedirs(fake_label_dir, exist_ok=True)
 
         # Iterate through labeled and unlabeled data simultaneously
@@ -992,4 +992,3 @@ class Trainer(BaseTrainer):
             targets_ul_np = target_ul.data.cpu().numpy()
             imgs = [[i.data.cpu(), j.data.cpu(), k, l] for i, j, k, l in zip(A_ul, B_ul, outputs_ul_np, targets_ul_np)]
             self._add_img_tb(imgs, 'unsupervised')
-

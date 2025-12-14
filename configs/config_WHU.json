@@ -1,7 +1,7 @@
 {
   "name": "NFCD",
-  "percent": 5,
-  "note_name": "stage3_nf",
+  "percent": 10,
+  "note_name": "{weight_tag}",
   "experim_name": "method_percent",
   "n_gpu": 1,
   "diff_lrs": true,
@@ -11,8 +11,8 @@
   "model": {
     "name": "encoder-decoder",
     "method": "supervised",
-    "backbone": "NF",
-    "nf_weight": 1,
+    "backbone": "ResNet50",
+    "nf_weight": 0.9,
     "confidence_thr": 0.95,
     "nf_thirdStageTrain": 0.3
   },
@@ -80,8 +80,8 @@
       10,
       80
     ],
-    "process": [1, 2, 3, 4],
-    "save_dir": "/mnt/sdb/26_zdj/OUT/nfcd/outputs/WHU",
+    "process": [3, 4],
+    "save_dir": "/mnt/sdb/26_zdj/OUT/nfcd/outputs/{dataset}/{backbone}",
     "save_period": 5,
     "save_period_nf": 5,
     "val_per_epochs": 5,

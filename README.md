@@ -131,7 +131,7 @@ Edit the configuration file for your dataset (e.g., `configs/config_CDD.json`):
   "name": "NFCD",
   "percent": 5,                    // Percentage of labeled data (5%, 10%, 20%)
   "model": {
-    "backbone": "NF",              // Backbone: NF, ResNet50, HRNet
+    "backbone": "ResNet50",        // Backbone: ResNet50, ResNet101, HRNet (NF kept for legacy configs)
     "confidence_thr": 0.95,        // Confidence threshold for pseudo labels
     "nf_weight": 0.7               // Weight for NF loss
   },
@@ -220,11 +220,17 @@ outputs/
 ├── DATASET_NAME/
 │   ├── stage1/
 │   │   └── best_model_thr-0.95.pth
-│   ├── stage2_nf/
+│   ├── stage2/
 │   │   └── nf/best_model_nf_decoders.pth
+│   ├── fake_labels/
+│   │   ├── Label_batch_0.pt
+│   │   ├── noLabel_batch_0.pt
+│   │   └── ...
 │   └── stage3/
-│       └── best_model.pth
+│       └── weightXX/
+│           └── best_model.pth
 ```
+Pseudo labels are shared across all weight settings and live directly under `fake_labels`; only the stage3 checkpoints remain weight-specific.
 
 
 ## 📄 License

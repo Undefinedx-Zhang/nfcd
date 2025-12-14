@@ -80,13 +80,15 @@ def main():
     method = config['model']['method']
     backbone = config['model']['backbone']
     if backbone == 'ResNet50':
-        model = models.FPA_ResNet50_CD(num_classes=num_classes, config=config, testing=True)
-    elif backbone == 'NF':
         model = models.NF_ResNet50_CD(num_classes=num_classes, config=config, testing=True)
-    elif backbone == 'HRNet':
-        model = models.FPA_HRNet_CD(num_classes=num_classes, conf=config['model'], testing=True)
     elif backbone == 'ResNet101':
-        model = models.FPA_ResNet101_CD(num_classes=num_classes, conf=config['model'], testing=True)
+        model = models.NF_ResNet101_CD(num_classes=num_classes, config=config, testing=True)
+    elif backbone == 'HRNet':
+        model = models.NF_HRNet_CD(num_classes=num_classes, config=config, testing=True)
+    elif backbone == 'NF':  # backward compatibility with older configs
+        model = models.NF_ResNet50_CD(num_classes=num_classes, config=config, testing=True)
+    else:
+        raise ValueError(f'Unsupported backbone: {backbone}')
     print(f'\n{model}\n')
     checkpoint = torch.load(args.model)
 
@@ -180,7 +182,7 @@ def parse_arguments():
     parser.add_argument('--config', default='configs/config_WHU.json', type=str,
                         help='Path to the config file')
     parser.add_argument('--model',
-                        default='/mnt/sdb/26_zdj/OUT/nfcd/outputs/WHU/supervised_all_20/stage3_nf/stage3/best_model_thr-0.95.pth',
+                        default='/mnt/sdb/26_zdj/OUT/nfcd/outputs/WHU/HRNet/supervised_all_10/stage1/best_model_thr-0.95.pth',
                         type=str,
                         help='Path to the trained .pth model')
     parser.add_argument('--save', action='store_true', help='Save images')
