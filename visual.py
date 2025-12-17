@@ -271,7 +271,6 @@ def parse_arguments():
                         help='method')
     args = parser.parse_args()
     return args
-# 方法 config 数据比例
 
 
 if __name__ == '__main__':

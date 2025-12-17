@@ -81,7 +81,7 @@ def load_encoder_arch(c, L):
             encoder = resnet18(pretrained=True, progress=True)
         elif c.enc_arch == 'resnet34':
             encoder = resnet34(pretrained=True, progress=True)
-        elif c.enc_arch == 'resnet50': #在这返回一个resnet50模型
+        elif c.enc_arch == 'resnet50':  # Return a ResNet-50 model here.
             encoder = resnet50(pretrained=True, progress=True)
         elif c.enc_arch == 'resnext50_32x4d':
             encoder = resnext50_32x4d(pretrained=True, progress=True)
