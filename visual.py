@@ -143,12 +143,12 @@ def multi_scale_predict(model, image_A, image_B, scales, num_classes, flip=False
     total_predictions /= len(scales)
     return total_predictions[:, :H, :W]
 
-name_lst = ['/sd1/kzq/nfcd/DATA/CDD/label/test_01392.jpg', '/sd1/kzq/nfcd/DATA/CDD/label/train_00727.jpg',\
-            '/sd1/kzq/nfcd/DATA/CDD/label/train_05136.jpg', '/sd1/kzq/nfcd/DATA/CDD/label/train_05793.jpg',\
-            '/sd1/kzq/nfcd/DATA/LEVIR/label/test_49_2.png', '/sd1/kzq/nfcd/DATA/LEVIR/label/test_50_11.png',\
-            '/sd1/kzq/nfcd/DATA/LEVIR/label/test_76_12.png','/sd1/kzq/nfcd/DATA/LEVIR/label/test_81_2.png',\
-            '/sd1/kzq/nfcd/DATA/WHU/label/whucd_02295.png','/sd1/kzq/nfcd/DATA/WHU/label/whucd_02473.png',\
-            '/sd1/kzq/nfcd/DATA/WHU/label/whucd_04727.png','/sd1/kzq/nfcd/DATA/WHU/label/whucd_04874.png']
+# name_lst = ['/sd1/kzq/nfcd/DATA/CDD/label/test_01392.jpg', '/sd1/kzq/nfcd/DATA/CDD/label/train_00727.jpg',\
+#             '/sd1/kzq/nfcd/DATA/CDD/label/train_05136.jpg', '/sd1/kzq/nfcd/DATA/CDD/label/train_05793.jpg',\
+#             '/sd1/kzq/nfcd/DATA/LEVIR/label/test_49_2.png', '/sd1/kzq/nfcd/DATA/LEVIR/label/test_50_11.png',\
+#             '/sd1/kzq/nfcd/DATA/LEVIR/label/test_76_12.png','/sd1/kzq/nfcd/DATA/LEVIR/label/test_81_2.png',\
+#             '/sd1/kzq/nfcd/DATA/WHU/label/whucd_02295.png','/sd1/kzq/nfcd/DATA/WHU/label/whucd_02473.png',\
+#             '/sd1/kzq/nfcd/DATA/WHU/label/whucd_04727.png','/sd1/kzq/nfcd/DATA/WHU/label/whucd_04874.png']
 def main():
     args = parse_arguments()
     method = args.method
@@ -170,7 +170,6 @@ def main():
 
     # MODEL
     dataset = args.Dataset_Path.split('/')[-1]
-    percent = config['percent']
     backbone = config['model']['backbone']
     if backbone == 'ResNet50':
         model = models.NF_ResNet50_CD(num_classes=num_classes, config=config, testing=True)
@@ -184,13 +183,14 @@ def main():
         raise ValueError(f"Unsupported backbone: {backbone}")
     print(f'\n{model}\n')
     checkpoint = torch.load(args.model)
-    model = torch.nn.DataParallel(model)
+    # Load weights before wrapping with DataParallel so keys match the saved state_dict
     try:
         print("Loading the state dictionery of {} ...".format(args, model))
         model.load_state_dict(checkpoint['state_dict'], strict=True)
     except Exception as e:
         print(f'Some modules are missing: {e}')
         model.load_state_dict(checkpoint['state_dict'], strict=False)
+    model = torch.nn.DataParallel(model)
     model.eval()
     model.cuda()
 
@@ -204,13 +204,18 @@ def main():
     total_inter, total_union = 0, 0
     total_correct, total_label = 0, 0
     total_tp, total_fp, total_tn, total_fn = 0, 0, 0, 0
-    os.makedirs(f'visuals/{method}/{dataset}20', exist_ok=True)
+    base_vis_dir = f'/mnt/sdb/26_zdj/visual/{method}/{dataset}/5'
+    os.makedirs(base_vis_dir, exist_ok=True)
+    iou_path = os.path.join(base_vis_dir, 'IoU.txt')
+    # Reset IoU log each run to avoid duplicate entries when re-running
+    open(iou_path, 'w').close()
     for index, data in enumerate(tbar):
+        if index >= 200:
+            break
         image_A, image_B, label, [image_A_path, image_B_path, label_path] = data
-        # if label_path == '/sd1/kzq/nfcd/DATA/CDD/label/test_01392.jpg':
-        #     print("6666")
-        if label_path[0] not in name_lst:
-            continue
+
+        # if label_path[0] not in name_lst:
+        #     continue
         image_A = image_A.cuda()
         image_B = image_B.cuda()
         label = label.cuda()
@@ -230,7 +235,7 @@ def main():
         output = torch.unsqueeze(output, 0)
 
         _, prediction = torch.max(output, 1)
-        path_name = os.path.join(f'visuals/{method}/{dataset}20', image_id)
+        path_name = os.path.join(base_vis_dir, image_id)
         os.makedirs(path_name, exist_ok=True)
 
         mySave(image_A_path, image_B_path, label, path_name, prediction)  # A B Label
@@ -246,7 +251,7 @@ def main():
         total_tn, total_fn = total_tn + tn, total_fn + fn
 
         IOUC_single = (inter / (np.spacing(1) + union))[1]
-        with open(f'visuals/{method}/{dataset}20/IoU.txt', "a") as f:
+        with open(iou_path, "a") as f:
             f.write(f"{image_id} {IOUC_single}\n")
 
 
@@ -255,18 +260,18 @@ def main():
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='PyTorch Training')
-    parser.add_argument('--config', default='configs/config_LEVIR.json', type=str,
+    parser.add_argument('--config', default='configs/config_CDD.json', type=str,
                         help='Path to the config file')
-    parser.add_argument('--model', default='/sd1/kzq/RCR/outputs/LEVIR/s4GAN_semi_20/best_model.pth', type=str,
+    parser.add_argument('--model', default='/mnt/sdb/26_zdj/OUT/nfcd/outputs/CDD/ResNet50/supervised_all_5/stage1/best_model_thr-0.95.pth', type=str,
                         help='Path to the trained .pth model')
     parser.add_argument('--save', action='store_true', help='Save images')
-    parser.add_argument('--Dataset_Path', default="/sd1/kzq/nfcd/DATA/LEVIR", type=str,
+    parser.add_argument('--Dataset_Path', default="/mnt/sdb/26_zdj/DATA/CDD", type=str,
                         help='Path to dataset WHU-CD')
-    parser.add_argument('--method', default="s4GAN", type=str,
+    parser.add_argument('--method', default="nfcd", type=str,
                         help='method')
     args = parser.parse_args()
     return args
-
+# 方法 config 数据比例
 
 
 if __name__ == '__main__':
