@@ -182,7 +182,7 @@ def parse_arguments():
     parser.add_argument('--config', default='configs/config_WHU.json', type=str,
                         help='Path to the config file')
     parser.add_argument('--model',
-                        default='/mnt/sdb/26_zdj/OUT/nfcd/outputs/WHU/HRNet/supervised_all_10/stage1/best_model_thr-0.95.pth',
+                        default='/mnt/sdb/26_zdj/OUT/nfcd/outputs/WHU/ResNet50/supervised_all_10/stage3/weight09/best_model_thr-0.95.pth',
                         type=str,
                         help='Path to the trained .pth model')
     parser.add_argument('--save', action='store_true', help='Save images')
