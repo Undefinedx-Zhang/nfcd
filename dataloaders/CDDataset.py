@@ -198,7 +198,10 @@ class ImageDataset(BaseDataSet):
         image_name = self.files[index].strip()
         image_A_path = os.path.join(self.root, 'A', image_name)
         image_B_path = os.path.join(self.root, 'B', image_name)
-        label_path = os.path.join(self.root, 'label', image_name)
+        label_name = image_name
+        if self.label_extension:
+            label_name = os.path.splitext(image_name)[0] + self.label_extension
+        label_path = os.path.join(self.root, 'label', label_name)
 
 
         # Read and convert to array

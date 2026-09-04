@@ -1,0 +1,10 @@
+ python train.py --config configs/config_FoodCD.json --gpu 5
+
+
+python food_inference.py \
+    --config configs/config_FoodCD.json \
+    --model <训练权重.pth> \
+    --video-dir /mnt/sdb/26_zdj/DATA/Annotations/classify/2021_03_25_164751 \
+    --pixel-prob-threshold 0.5 \
+    --change-ratio-threshold 0.02 \
+    --output-dir outputs/food_infer/2021_03_25_164751

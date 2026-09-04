@@ -15,7 +15,7 @@ from PIL import Image
 class BaseDataSet(Dataset):
     def __init__(self, aug_type, data_dir, split, mean, std, base_size=None, augment='weak',
                 val=False, crop_size=None, scale=False, flip=False, rotate=False,
-                return_id=False, percnt_lbl=None):
+                return_id=False, percnt_lbl=None, label_extension=None):
 
         self.root = data_dir
         self.split = split
@@ -26,6 +26,7 @@ class BaseDataSet(Dataset):
         self.image_padding = (np.array(mean)*255.).tolist()
         self.return_id = return_id
         self.percnt_lbl = percnt_lbl
+        self.label_extension = label_extension
         self.val = val
 
         #self.addGenerativePic=addGenerativePic
@@ -239,4 +240,3 @@ class BaseDataSet(Dataset):
         fmt_str += "    Split: {}\n".format(self.split)
         fmt_str += "    Root: {}".format(self.root)
         return fmt_str
-

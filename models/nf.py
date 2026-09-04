@@ -1,8 +1,15 @@
 import math
+import sys
+from pathlib import Path
+
 import torch
 from torch import nn
 from models.nf_custom_models import *
-# FrEIA (https://github.com/VLL-HD/FrEIA/)
+
+FREIA_PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "FrEIA"
+if str(FREIA_PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(FREIA_PACKAGE_ROOT))
+
 import FrEIA.framework as Ff
 import FrEIA.modules as Fm
 import timm

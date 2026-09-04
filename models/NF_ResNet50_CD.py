@@ -77,11 +77,7 @@ class NF_ResNet50_CD(BaseModel):
             out_feat_l = self.encoder(A_l, B_l)
             out_l = self.decoder(out_feat_l)
             loss_l_1 = self.loss_l(out_l, target_l)
-            nf_l = nf_l.unsqueeze(1).to(torch.float32)
-            Cross_l = self.concatDecoder(out_feat_l.detach(), nf_l)
-            loss_l_2 = self.loss_l(Cross_l, target_l)
-            # Overall supervised Loss
-            loss_l = loss_l_1 + loss_l_2 * self.nf_weight
+            loss_l = loss_l_1
 
 
             # Unsupervised loss
@@ -91,23 +87,13 @@ class NF_ResNet50_CD(BaseModel):
             strong_feat_ul = self.encoder(SA_ul, SB_ul)
             strong_out_ul = self.decoder(strong_feat_ul)
 
-            # Ensemble Unsupervised Loss
-            nf_ul = nf_ul.unsqueeze(1).to(torch.float32)
-            Cross_ul = self.concatDecoder(weak_feat_ul.detach(), nf_ul)
-
-            Cross_prob_ul = F.softmax(Cross_ul.detach(), dim=1)
-            max_probs_Cross, target_ul_Cross = torch.max(Cross_prob_ul, dim=1)
-            mask_Cross = max_probs_Cross.ge(self.confidence_thr).float()
-            loss_ul_cls_2 = (F.cross_entropy(weak_out_ul, target_ul_Cross, reduction='none') * mask_Cross).mean()
-
             # Standard Unsupervised Loss
             weak_prob_ul = F.softmax(weak_out_ul.detach(), dim=1)
             max_probs, target_ul = torch.max(weak_prob_ul, dim=1)
             mask = max_probs.ge(self.confidence_thr).float()
             loss_ul_cls_1 = (F.cross_entropy(strong_out_ul, target_ul, reduction='none') * mask).mean()
 
-            # Overall Consistency Loss
-            loss_ul_cls = loss_ul_cls_1 + loss_ul_cls_2 * self.nf_weight
+            loss_ul_cls = loss_ul_cls_1
 
             # Feature-Alignment Loss
             loss_ul_alg = self.loss_alg(weak_prob_ul, strong_feat_ul, self.confidence_thr)

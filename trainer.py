@@ -470,23 +470,9 @@ class Trainer(BaseTrainer):
         P = self.nf_conf.condition_vec
         self._reset_metrics()
 
-        # Pseudo label storage path (consistent with generation function)
-        # fake_label_dir = os.path.join(self.checkpoint_dir, "fake_labels")
-        fake_label_dir = self.config["fake_labels_dir"]
-        os.makedirs(fake_label_dir, exist_ok=True)
-
         for batch_idx in tbar:
-            # Load data and pseudo labels ================================
+            # Load data ==================================================
             (A_l, B_l, target_l), (WA_ul, WB_ul, SA_ul, SB_ul, target_ul) = next(dataloader)
-
-            # Load pseudo labels for labeled data
-            label_path = os.path.join(fake_label_dir, f"Label_batch_{batch_idx}.pt")
-            nf_l_prop_map = torch.load(label_path).to("cuda")
-
-            # Load pseudo labels for unlabeled data
-            nolabel_path = os.path.join(fake_label_dir, f"noLabel_batch_{batch_idx}.pt")
-            nf_ul_prop_map = torch.load(nolabel_path).to("cuda")
-            # ==============================================
 
             # Transfer data to GPU
             WA_ul, WB_ul = WA_ul.cuda(non_blocking=True), WB_ul.cuda(non_blocking=True)
@@ -497,7 +483,7 @@ class Trainer(BaseTrainer):
 
             self.optimizer.zero_grad()
 
-            # Model forward pass (pass in dual pseudo labels) =======================
+            # Model forward pass =========================================
             vis_savedir = os.path.join(self.checkpoint_dir, "visual")
             total_third_step_loss, cur_third_step_losses, outputs= self.model(
                 epoch=epoch,
@@ -511,8 +497,6 @@ class Trainer(BaseTrainer):
                 SA_ul=SA_ul,
                 SB_ul=SB_ul,
                 target_ul_real=target_ul,
-                nf_l=nf_l_prop_map,  # New labeled pseudo label
-                nf_ul=nf_ul_prop_map,  # Original unlabeled pseudo label
                 method="third"
             )
             # ==============================================
