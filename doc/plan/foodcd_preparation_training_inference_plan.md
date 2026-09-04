@@ -30,8 +30,9 @@
 └── manifest.csv        # 每个样本的来源与生成结果，便于追溯
 
 /mnt/sdb/26_zdj/DATA/Annotations/classify/
-├── <video_id>/         # 一个视频一个目录，含该视频的所有原始图像
-└── manifest.csv        # 视频 ID、首帧、帧数、目录、排序信息
+├── <food_class>/<video_id>/  # 按六种食物归类的视频目录，含该视频的所有原始图像
+├── food_video_map.csv         # 视频 ID 与食物类别的对应关系
+└── manifest.csv                # 视频 ID、首帧、帧数、目录、排序信息
 ```
 
 样本名使用 B 时相的原始 stem，例如：
@@ -149,21 +150,28 @@ python food_inference.py \
 1. 用配置中的骨干构造模型，加载 checkpoint 的 `state_dict`，并采用与验证一致的归一化、缩放和
    padding 逻辑。
 2. 计算每像素变化概率 `softmax(logits)[change]`，按 `--pixel-prob-threshold` 生成预测二值掩码。
-3. 输出 `changed_pixels`、`total_pixels`、`change_ratio` 和
-   `has_change = change_ratio >= change_ratio_threshold`，两个阈值分别可配置，避免混淆像素置信度与
-   整体变化比例。
+3. 输出 `changed_pixels`、`total_pixels` 和 `change_ratio` 供参考；成熟判定不再使用变化像素比例。
+   默认 GT 模式下，GT 成熟起点为首次出现熟类 mask 像素，预测成熟起点为变化前景 IoU 首次达到
+   `--change-iou-threshold`。
 4. 保存 `prediction_mask.png`（0/255）、概率图、A/B/预测掩码叠加图和 `result.json`。
-5. 支持 `--video-dir /mnt/sdb/26_zdj/DATA/Annotations/classify/<video_id>`：自动选取数值序最小的首帧为
+5. 支持 `--video-dir /mnt/sdb/26_zdj/DATA/Annotations/classify/<food_class>/<video_id>`：自动选取数值序最小的首帧为
    A，依次与每张图配对，并输出逐帧 `results.csv` 和整段视频的汇总结果。
+6. 默认读取 `/mnt/sdb/26_zdj/DATA/Annotations/semantic_mask`，将语义掩码中的非 `_0` 熟类转为 GT
+   变化区域，输出 `gt_change_ratio`、变化前景 IoU、Precision、Recall、F1 及 IoU 阈值判定；新视频无
+   GT 时传入 `--no-gt` 关闭该评估。
+   视频汇总额外记录 `mean_change_iou`（所有 IoU 有定义的帧）与
+   `mean_gt_mature_change_iou`（仅 GT 已出现熟类 mask 的帧）。
 
 ## 9. classify 视频目录整理
 
-数据构建脚本增加 `--build-classify`。对每个 `video_id` 创建
-`/mnt/sdb/26_zdj/DATA/Annotations/classify/<video_id>/`，并按帧序号将原始 JPG 放入该目录。
+数据构建脚本增加 `--build-classify`。对每个 `video_id` 创建视频目录并按帧序号放入原始 JPG；随后依据
+语义掩码类别将目录移动到
+`/mnt/sdb/26_zdj/DATA/Annotations/classify/<food_class>/<video_id>/`。
 
 默认使用相对符号链接，避免复制 7,068 张高分辨率图；`--classify-mode {symlink,hardlink,copy}` 可按
 后续部署位置选择。每个视频目录额外写入 `frames.csv`，列出顺序、原始文件名、帧序号以及首帧标记，
 使推理脚本无需依赖文件系统的字典序。
+当前食物类别为 `chickenwing`、`chiffon`、`eggtart`、`shrimp`、`steak`、`sweetpotato`。
 
 ## 10. 验证、试运行与交付顺序
 
